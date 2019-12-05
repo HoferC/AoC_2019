@@ -53,7 +53,7 @@ class Wire:
             for c1 in self.coordsByX[x]:
                 for c2 in otherWire.coordsByX[x]:
                     if c1.y == c2.y:
-                        if c1.x != 0 and c1.y != 0:
+                        if not (c1.x == 0 and c1.y == 0):
                             intersections.append(c1)
                             # print(c1, '\t', c1.manhattan())
         return intersections
@@ -71,7 +71,7 @@ class Coordinate:
         return str(self.x) + ",\t" + str(self.y)
 
     def manhattan(self):
-        return math.fabs(self.x) + math.fabs(self.y)
+        return abs(self.x) + abs(self.y)
 
 def star1():
     print('Star 1')
@@ -85,6 +85,7 @@ def star1():
         instructions = instructionString.split(',')
         w2.parse(instructions)
 
+        # Get the intersection points (list of Coordinate)
         intPoints = w1.findIntersections(w2)
         print("********")
         print(min(wi.manhattan() for wi in intPoints))
