@@ -2,6 +2,10 @@ class IntCodeComputer:
 
     def __init__(self):
         self.memory = []
+        self.lastOutput = -1
+        self.isTerminated = True
+        self.input = []
+        self.instrPtr = 0
 
     def dumpMemory(self):
         output = ''
@@ -20,14 +24,19 @@ class IntCodeComputer:
         if mode == 1:
             return operand
 
+    def addInput(self, newInput:int):
+        self.input.append(newInput)
 
-    def process(self, inputString = '', verbose = False):
-        instrPtr = 0
-        while instrPtr < len(self.memory):
+
+    def process(self, inputString = '', verbose = False, silent = False):
+        input = str(inputString).split('\n')
+        for i in input:
+            self.input.append(i)
+        while self.instrPtr < len(self.memory):
             if verbose:
-                print('InstrPtr:', instrPtr)
+                print('InstrPtr:', self.instrPtr)
             # Read the instruction as a string so we can index its digits
-            instruction = str(self.memory[instrPtr])
+            instruction = str(self.memory[self.instrPtr])
             # Once we have the instruction, we need to parse it
             # which will tell us whether we are looking at position
             # or immediate mode
@@ -45,93 +54,102 @@ class IntCodeComputer:
 
             if opcode == 99:
                 # Break immediately to avoid array out of bounds
-                print("Program Halt")
+                if verbose:
+                    print("Program Halt")
+                self.isTerminated = True
                 break
             if opcode == 1:
                 # Add
                 # 3 operands
-                op1 = self.processOperand(self.memory[instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[instrPtr+2], int(modes[-2]))
+                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
+                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
                 # 3rd operand always has to be position mode
-                op3 = self.memory[instrPtr+3]
+                op3 = self.memory[self.instrPtr+3]
                 result = op1 + op2
                 if verbose:
                     print('Add', op1, '+', op2, '=', result)
                     print('Sto:', op3)
                 self.memory[op3] = result
-                instrPtr += 4
+                self.instrPtr += 4
 
             elif opcode == 2:
                 # Multiply
                 # 3 operands
-                op1 = self.processOperand(self.memory[instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[instrPtr+2], int(modes[-2]))
+                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
+                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
                 # 3rd operand always has to be position mode
-                op3 = self.memory[instrPtr+3]
+                op3 = self.memory[self.instrPtr+3]
                 result = op1 * op2
                 if verbose:
                     print('Mul', op1, '*', op2, '=', result)
                     print('Sto:', op3)
                 self.memory[op3] = result
-                instrPtr += 4
+                self.instrPtr += 4
             
             elif opcode == 3:
                 # Input Save
-                inputVal = int(inputString)
-                op1 = self.memory[instrPtr+1]
+                if len(self.input) == 0:
+                    # No input available, break
+                    break
+                inputVal = int(self.input.pop(0))
+                if verbose:
+                    print("Processing input", inputVal)
+                op1 = self.memory[self.instrPtr+1]
                 self.modifyMemory(op1, inputVal)
-                instrPtr += 2
+                self.instrPtr += 2
 
             elif opcode == 4:
                 # Output
-                op1 = self.processOperand(self.memory[instrPtr+1], int(modes[-1]))
-                print('********')
-                print(op1)
-                print('********')
-                instrPtr += 2
+                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
+                if not silent:
+                    print('********')
+                    print(op1)
+                    print('********')
+                self.lastOutput = op1
+                self.instrPtr += 2
 
             elif opcode == 5:
                 # Jump if true
-                op1 = self.processOperand(self.memory[instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[instrPtr+2], int(modes[-2]))
+                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
+                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
                 if op1:
-                    instrPtr = op2
+                    self.instrPtr = op2
                 else:
-                    instrPtr += 3
+                    self.instrPtr += 3
 
             elif opcode == 6:
                 # Jump if false
-                op1 = self.processOperand(self.memory[instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[instrPtr+2], int(modes[-2]))
+                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
+                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
                 if not op1:
-                    instrPtr = op2
+                    self.instrPtr = op2
                 else:
-                    instrPtr += 3
+                    self.instrPtr += 3
 
             elif opcode == 7:
                 # Less than
-                op1 = self.processOperand(self.memory[instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[instrPtr+2], int(modes[-2]))
+                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
+                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
                 # 3rd operand always has to be position mode
-                op3 = self.memory[instrPtr+3]
+                op3 = self.memory[self.instrPtr+3]
                 if op1 < op2:
                     self.memory[op3] = 1
                 else:
                     self.memory[op3] = 0
-                instrPtr += 4
+                self.instrPtr += 4
 
 
             elif opcode == 8:
                 # Equals
-                op1 = self.processOperand(self.memory[instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[instrPtr+2], int(modes[-2]))
+                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
+                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
                 # 3rd operand  always has to be position mode
-                op3 = self.memory[instrPtr+3]
+                op3 = self.memory[self.instrPtr+3]
                 if op1 == op2:
                     self.memory[op3] = 1
                 else:
                     self.memory[op3] = 0
-                instrPtr += 4
+                self.instrPtr += 4
 
 
             else:
@@ -141,19 +159,18 @@ class IntCodeComputer:
                     print(self.dumpMemory())
                 break
 
-
-
         return self.dumpMemory()
 
     
     # Load a program into memory but does not eecute it
     def loadProgram(self, progString):
-        print("Loading Memory...")
+        self.isTerminated = False
         self.memory = []
+        self.instrPtr = 0
         instructions = progString.split(',')
         for m in instructions:
             self.memory.append(int(m))
-        print("Load Complete. Memory Size:", len(self.memory))
+        # print("Program Load Complete. Memory Size:", len(self.memory))
 
 
     # Updates the memory in a location to the provided value
