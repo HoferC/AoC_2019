@@ -38,7 +38,7 @@ class IntCodeComputer:
             # Relative mode
             if verbose:
                 print("Relative Base: {0} - Operand: {1}".format(self.relativeBase, location))
-            return self.readMemory(location + self.relativeBase)
+            return self.readMemory(self.readMemory(location) + self.relativeBase)
 
     def setParameterValue(self, location, mode, value, verbose = False):
         if mode == 0:
@@ -51,7 +51,7 @@ class IntCodeComputer:
             # Relative mode
             if verbose:
                 print("Relative Base: {0} - Operand: {1}".format(self.relativeBase, location))
-            self.writeMemory(location + self.relativeBase, value)
+            self.writeMemory(self.readMemory(location) + self.relativeBase, value)
 
 
     def addInput(self, newInput:int):
@@ -73,7 +73,9 @@ class IntCodeComputer:
             self.input.append(i)
         while self.instrPtr < len(self.memory):
             if verbose:
+                print('--- Scan ---')
                 print('InstrPtr:', self.instrPtr)
+                print('RelBase:', self.relativeBase)
             # Read the instruction as a string so we can index its digits
             instruction = str(self.memory[self.instrPtr])
             # Once we have the instruction, we need to parse it
@@ -102,12 +104,9 @@ class IntCodeComputer:
                 # 3 operands
                 op1 = self.getParameterValue(self.instrPtr + 1, int(modes[-1]))
                 op2 = self.getParameterValue(self.instrPtr + 2, int(modes[-2]))
-                # 3rd operand always has to be position mode
-                op3 = self.memory[self.instrPtr+3]
                 result = op1 + op2
                 if verbose:
                     print('Add', op1, '+', op2, '=', result)
-                    print('Sto:', op3)
                 self.setParameterValue(self.instrPtr+3, int(modes[-3]), result)
                 self.instrPtr += 4
 
@@ -116,12 +115,9 @@ class IntCodeComputer:
                 # 3 operands
                 op1 = self.getParameterValue(self.instrPtr + 1, int(modes[-1]))
                 op2 = self.getParameterValue(self.instrPtr + 2, int(modes[-2]))
-                # 3rd operand always has to be position mode
-                op3 = self.memory[self.instrPtr+3]
                 result = op1 * op2
                 if verbose:
                     print('Mul', op1, '*', op2, '=', result)
-                    print('Sto:', op3)
                 self.setParameterValue(self.instrPtr+3, int(modes[-3]), result)
                 self.instrPtr += 4
             
@@ -190,8 +186,9 @@ class IntCodeComputer:
 
             elif opcode == 9:
                 # Set Relative Pointer
-                op1 = self.getParameterValue(self.instrPtr + 1, int(modes[-1]))
-                #op1 = self.memory[self.instrPtr + 1]
+                op1 = self.getParameterValue(self.instrPtr + 1, int(modes[-1]), verbose)
+                if verbose:
+                    print('Adjusting RelPtr by {0}'.format(op1))
                 self.relativeBase += op1
                 if verbose:
                     print("New Relative Base: {0}".format(self.relativeBase))
