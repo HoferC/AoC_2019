@@ -6,6 +6,7 @@ class IntCodeComputer:
         self.isTerminated = True
         self.input = []
         self.instrPtr = 0
+        self.relativeBase = 0
 
     def dumpMemory(self):
         output = ''
@@ -16,17 +17,45 @@ class IntCodeComputer:
         # Remove trailing comma when returning
         return output[0:len(output)-1]
 
+    def readMemory(self, location:int):
+        while len(self.memory) < location + 1:
+            self.memory.append(0)
+        return self.memory[location]
+
+    def writeMemory(self, location:int, value:int):
+        while len(self.memory) < location + 1:
+            self.memory.append(0)
+        self.memory[location] = value
+
+
     def processOperand(self, operand, mode, verbose = False):
         if verbose:
                 print('Op', operand, 'Mode', mode)
         if mode == 0:
-            return self.memory[operand]
+            # Position Mode
+            return self.readMemory(operand)
         if mode == 1:
+            # Parameter Mode
             return operand
+        if mode == 2:
+            # Relative mode
+            if verbose:
+                print("Relative Base: {0} - Operand: {1}".format(self.relativeBase, operand))
+            return self.readMemory(operand + self.relativeBase)
+
 
     def addInput(self, newInput:int):
         self.input.append(newInput)
 
+    # Load a program into memory but does not execute it
+    def loadProgram(self, progString):
+        self.isTerminated = False
+        self.memory = []
+        self.instrPtr = 0
+        instructions = progString.split(',')
+        for m in instructions:
+            self.memory.append(int(m))
+        # print("Program Load Complete. Memory Size:", len(self.memory))
 
     def process(self, inputString = '', verbose = False, silent = False):
         input = str(inputString).split('\n')
@@ -69,7 +98,7 @@ class IntCodeComputer:
                 if verbose:
                     print('Add', op1, '+', op2, '=', result)
                     print('Sto:', op3)
-                self.memory[op3] = result
+                self.writeMemory(op3, result)
                 self.instrPtr += 4
 
             elif opcode == 2:
@@ -83,7 +112,7 @@ class IntCodeComputer:
                 if verbose:
                     print('Mul', op1, '*', op2, '=', result)
                     print('Sto:', op3)
-                self.memory[op3] = result
+                self.writeMemory(op3, result)
                 self.instrPtr += 4
             
             elif opcode == 3:
@@ -94,8 +123,8 @@ class IntCodeComputer:
                 inputVal = int(self.input.pop(0))
                 if verbose:
                     print("Processing input", inputVal)
-                op1 = self.memory[self.instrPtr+1]
-                self.modifyMemory(op1, inputVal)
+                op1 = self.memory[self.instrPtr + 1]
+                self.writeMemory(op1, inputVal)
                 self.instrPtr += 2
 
             elif opcode == 4:
@@ -133,9 +162,9 @@ class IntCodeComputer:
                 # 3rd operand always has to be position mode
                 op3 = self.memory[self.instrPtr+3]
                 if op1 < op2:
-                    self.memory[op3] = 1
+                    self.writeMemory(op3, 1)
                 else:
-                    self.memory[op3] = 0
+                    self.writeMemory(op3, 0)
                 self.instrPtr += 4
 
 
@@ -146,11 +175,18 @@ class IntCodeComputer:
                 # 3rd operand  always has to be position mode
                 op3 = self.memory[self.instrPtr+3]
                 if op1 == op2:
-                    self.memory[op3] = 1
+                    self.writeMemory(op3, 1)
                 else:
-                    self.memory[op3] = 0
+                    self.writeMemory(op3, 0)
                 self.instrPtr += 4
 
+
+            elif opcode == 9:
+                # Set Relative Pointer
+                opb = self.processOperand(self.memory[self.instrPtr + 1], int(modes[-1]))
+                op1 = self.memory[self.instrPtr + 1]
+                self.relativeBase += op1
+                self.instrPtr += 2
 
             else:
                 print("**** ERROR ****")
@@ -162,15 +198,7 @@ class IntCodeComputer:
         return self.dumpMemory()
 
     
-    # Load a program into memory but does not eecute it
-    def loadProgram(self, progString):
-        self.isTerminated = False
-        self.memory = []
-        self.instrPtr = 0
-        instructions = progString.split(',')
-        for m in instructions:
-            self.memory.append(int(m))
-        # print("Program Load Complete. Memory Size:", len(self.memory))
+
 
 
     # Updates the memory in a location to the provided value

@@ -6,6 +6,7 @@ import day05
 import day06
 import day07
 import day08
+import day09
 
 print("*** Day 1! ***")
 day01.star1()
@@ -29,5 +30,8 @@ print("*** Day 7! ***")
 day07.star1()
 day07.star2()
 print("*** Day 8! ***")
-day08.star1()
-day08.star2()
+image = day08.star1()
+day08.star2(image)
+print("*** Day 9! ***")
+day09.star1()
+day09.star2()
