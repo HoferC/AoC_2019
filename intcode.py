@@ -27,6 +27,32 @@ class IntCodeComputer:
             self.memory.append(0)
         self.memory[location] = value
 
+    def getParameterValue(self, location, mode, verbose = False):
+        if mode == 0:
+            # Position Mode
+            return self.readMemory(self.readMemory(location))
+        if mode == 1:
+            # Parameter Mode
+            return self.readMemory(location)
+        if mode == 2:
+            # Relative mode
+            if verbose:
+                print("Relative Base: {0} - Operand: {1}".format(self.relativeBase, location))
+            return self.readMemory(location + self.relativeBase)
+
+    def setParameterValue(self, location, mode, value, verbose = False):
+        if mode == 0:
+            # Position Mode
+            self.writeMemory(self.readMemory(location), value)
+        if mode == 1:
+            # Parameter Mode
+            raise ValueError()
+        if mode == 2:
+            # Relative mode
+            if verbose:
+                print("Relative Base: {0} - Operand: {1}".format(self.relativeBase, location))
+            self.writeMemory(location + self.relativeBase, value)
+
 
     def processOperand(self, operand, mode, verbose = False):
         if verbose:
@@ -70,7 +96,7 @@ class IntCodeComputer:
             # which will tell us whether we are looking at position
             # or immediate mode
             if verbose:
-                print('I:', instruction)
+                print('Instruction:', instruction)
             if len(instruction) < 3:
                 opcode = int(instruction)
                 modes = '000'
@@ -79,7 +105,7 @@ class IntCodeComputer:
                 modes = instruction[:-2].zfill(3)
             if verbose:
                 print("OpCode:", opcode)
-                print("M:", modes)
+                print("Mode:", modes)
 
             if opcode == 99:
                 # Break immediately to avoid array out of bounds
@@ -90,29 +116,29 @@ class IntCodeComputer:
             if opcode == 1:
                 # Add
                 # 3 operands
-                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
+                op1 = self.getParameterValue(self.instrPtr + 1, int(modes[-1]))
+                op2 = self.getParameterValue(self.instrPtr + 2, int(modes[-2]))
                 # 3rd operand always has to be position mode
                 op3 = self.memory[self.instrPtr+3]
                 result = op1 + op2
                 if verbose:
                     print('Add', op1, '+', op2, '=', result)
                     print('Sto:', op3)
-                self.writeMemory(op3, result)
+                self.setParameterValue(self.instrPtr+3, int(modes[-3]), result)
                 self.instrPtr += 4
 
             elif opcode == 2:
                 # Multiply
                 # 3 operands
-                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
+                op1 = self.getParameterValue(self.instrPtr + 1, int(modes[-1]))
+                op2 = self.getParameterValue(self.instrPtr + 2, int(modes[-2]))
                 # 3rd operand always has to be position mode
                 op3 = self.memory[self.instrPtr+3]
                 result = op1 * op2
                 if verbose:
                     print('Mul', op1, '*', op2, '=', result)
                     print('Sto:', op3)
-                self.writeMemory(op3, result)
+                self.setParameterValue(self.instrPtr+3, int(modes[-3]), result)
                 self.instrPtr += 4
             
             elif opcode == 3:
@@ -123,8 +149,7 @@ class IntCodeComputer:
                 inputVal = int(self.input.pop(0))
                 if verbose:
                     print("Processing input", inputVal)
-                op1 = self.memory[self.instrPtr + 1]
-                self.writeMemory(op1, inputVal)
+                self.setParameterValue(self.instrPtr + 1, int(modes[-1]), inputVal, verbose=True)
                 self.instrPtr += 2
 
             elif opcode == 4:
@@ -139,8 +164,8 @@ class IntCodeComputer:
 
             elif opcode == 5:
                 # Jump if true
-                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
+                op1 = self.getParameterValue(self.instrPtr + 1, int(modes[-1]))
+                op2 = self.getParameterValue(self.instrPtr + 2, int(modes[-2]))
                 if op1:
                     self.instrPtr = op2
                 else:
@@ -148,8 +173,8 @@ class IntCodeComputer:
 
             elif opcode == 6:
                 # Jump if false
-                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
+                op1 = self.getParameterValue(self.instrPtr + 1, int(modes[-1]))
+                op2 = self.getParameterValue(self.instrPtr + 2, int(modes[-2]))
                 if not op1:
                     self.instrPtr = op2
                 else:
@@ -157,35 +182,35 @@ class IntCodeComputer:
 
             elif opcode == 7:
                 # Less than
-                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
+                op1 = self.getParameterValue(self.instrPtr + 1, int(modes[-1]))
+                op2 = self.getParameterValue(self.instrPtr + 2, int(modes[-2]))
                 # 3rd operand always has to be position mode
-                op3 = self.memory[self.instrPtr+3]
                 if op1 < op2:
-                    self.writeMemory(op3, 1)
+                    self.setParameterValue(self.instrPtr+3, int(modes[-3]), 1)
                 else:
-                    self.writeMemory(op3, 0)
+                    self.setParameterValue(self.instrPtr+3, int(modes[-3]), 0)
                 self.instrPtr += 4
 
 
             elif opcode == 8:
                 # Equals
-                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
-                op2 = self.processOperand(self.memory[self.instrPtr+2], int(modes[-2]))
+                op1 = self.getParameterValue(self.instrPtr+1, int(modes[-1]))
+                op2 = self.getParameterValue(self.instrPtr+2, int(modes[-2]))
                 # 3rd operand  always has to be position mode
-                op3 = self.memory[self.instrPtr+3]
                 if op1 == op2:
-                    self.writeMemory(op3, 1)
+                    self.setParameterValue(self.instrPtr+3, int(modes[-3]), 1)
                 else:
-                    self.writeMemory(op3, 0)
+                    self.setParameterValue(self.instrPtr+3, int(modes[-3]), 0)
                 self.instrPtr += 4
 
 
             elif opcode == 9:
                 # Set Relative Pointer
-                opb = self.processOperand(self.memory[self.instrPtr + 1], int(modes[-1]))
-                op1 = self.memory[self.instrPtr + 1]
+                op1 = self.getParameterValue(self.instrPtr + 1, int(modes[-1]))
+                #op1 = self.memory[self.instrPtr + 1]
                 self.relativeBase += op1
+                if verbose:
+                    print("New Relative Base: {0}".format(self.relativeBase))
                 self.instrPtr += 2
 
             else:

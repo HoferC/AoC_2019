@@ -6,7 +6,7 @@ def star1():
         programText = f.readline()
     computer = intcode.IntCodeComputer()
     computer.loadProgram(programText)
-    computer.process('1')
+    computer.process('1', True)
 
 
 
