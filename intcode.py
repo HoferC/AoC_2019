@@ -54,22 +54,6 @@ class IntCodeComputer:
             self.writeMemory(location + self.relativeBase, value)
 
 
-    def processOperand(self, operand, mode, verbose = False):
-        if verbose:
-                print('Op', operand, 'Mode', mode)
-        if mode == 0:
-            # Position Mode
-            return self.readMemory(operand)
-        if mode == 1:
-            # Parameter Mode
-            return operand
-        if mode == 2:
-            # Relative mode
-            if verbose:
-                print("Relative Base: {0} - Operand: {1}".format(self.relativeBase, operand))
-            return self.readMemory(operand + self.relativeBase)
-
-
     def addInput(self, newInput:int):
         self.input.append(newInput)
 
@@ -154,7 +138,7 @@ class IntCodeComputer:
 
             elif opcode == 4:
                 # Output
-                op1 = self.processOperand(self.memory[self.instrPtr+1], int(modes[-1]))
+                op1 = self.getParameterValue(self.instrPtr + 1, int(modes[-1]))
                 if not silent:
                     print('********')
                     print(op1)
